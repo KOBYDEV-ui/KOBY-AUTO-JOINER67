@@ -1,6 +1,7 @@
 import os
 import threading
 import traceback
+import sys
 import discord
 from discord.ext import commands
 from discord import app_commands
@@ -17,9 +18,10 @@ def run_web():
     try:
         import uvicorn
         port = int(os.environ.get("PORT", 10000))
+        print(f"Lancement du serveur web sur le port {port}...", flush=True)
         uvicorn.run(app, host="0.0.0.0", port=port)
     except Exception as e:
-        print(f"Erreur Web Server: {e}")
+        print(f"Erreur Web Server: {e}", flush=True)
 
 class ObfBot(commands.Bot):
     def __init__(self):
@@ -27,18 +29,17 @@ class ObfBot(commands.Bot):
 
     async def setup_hook(self):
         try:
-            # Synchronisation sécurisée pour éviter de spammer l'API
-            print("Synchronisation des commandes...")
+            print("Synchronisation des commandes slash...", flush=True)
             await self.tree.sync()
-            print("Commandes slash synchronisées avec succès !")
+            print("Commandes slash synchronisées avec succès !", flush=True)
         except Exception as e:
-            print(f"Avertissement sync tree (rate limit possible) : {e}")
+            print(f"Erreur sync tree: {e}", flush=True)
 
 bot = ObfBot()
 
 @bot.event
 async def on_ready():
-    print(f"Bot connecté : {bot.user.name}")
+    print(f"Bot connecté avec succès : {bot.user.name}", flush=True)
 
 @bot.tree.command(name="obf", description="Obfusque un script Lua (par texte ou par fichier)")
 @app_commands.describe(
@@ -76,19 +77,21 @@ async def obf(interaction: discord.Interaction, code: str = None, file: discord.
         if os.path.exists(file_name):
             os.remove(file_name)
     except Exception as e:
-        print(f"Erreur dans la commande obf: {e}")
+        print(f"Erreur dans la commande obf: {e}", flush=True)
 
 if __name__ == "__main__":
     try:
+        print("Démarrage du thread web...", flush=True)
         threading.Thread(target=run_web, daemon=True).start()
         
         TOKEN = os.environ.get("TOKEN")
         if TOKEN:
-            print("Démarrage du bot Discord...")
+            print("Token trouvé, lancement du bot Discord...", flush=True)
             bot.run(TOKEN)
         else:
-            print("Erreur : Aucun Token trouvé dans les variables d'environnement !")
+            print("Erreur critique : Aucun Token trouvé dans les variables d'environnement !", flush=True)
     except Exception as e:
-        print("Erreur critique au lancement du bot :")
+        print("Erreur fatale au lancement :", flush=True)
         traceback.print_exc()
+        sys.exit(1)
         

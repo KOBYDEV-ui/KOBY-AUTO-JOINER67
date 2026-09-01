@@ -2,6 +2,7 @@ import os
 import threading
 import traceback
 import sys
+import time
 import discord
 from discord.ext import commands
 from discord import app_commands
@@ -66,7 +67,7 @@ async def obf(interaction: discord.Interaction, code: str = None, file: discord.
         encoded_bytes = base64.b64encode(script_content.encode("utf-8"))
         encoded_str = encoded_bytes.decode("utf-8")
         
-        protected_script = f"""--[[\n    Protégé par KobyBot\n]]--\nlocal _script_data = "{encoded_str}";\nprint("Script chargé en sécurité !");\n"""
+        protected_script = f"""--[[\n    Protégé par KobyBot\n]]--\nlocal _script_data = "{encoded_str}";\nprint("Script chargé en sécurité !+"\n);"""
 
         file_name = "protected.lua"
         with open(file_name, "w", encoding="utf-8") as f:
@@ -86,8 +87,21 @@ if __name__ == "__main__":
         
         TOKEN = os.environ.get("TOKEN")
         if TOKEN:
-            print("Token trouvé, lancement du bot Discord...", flush=True)
-            bot.run(TOKEN)
+            while True:
+                try:
+                    print("Tentative de connexion du bot Discord...", flush=True)
+                    bot.run(TOKEN)
+                except discord.errors.HTTPException as e:
+                    if e.status == 429:
+                        print("⚠️ Rate limit (429) de Discord détecté ! Pause de 5 minutes pour laisser passer le blocage...", flush=True)
+                        time.sleep(300)
+                    else:
+                        print(f"Erreur HTTP Discord: {e}", flush=True)
+                        time.sleep(60)
+                except Exception as e:
+                    print(f"Erreur du bot: {e}", flush=True)
+                    traceback.print_exc()
+                    time.sleep(60)
         else:
             print("Erreur critique : Aucun Token trouvé dans les variables d'environnement !", flush=True)
     except Exception as e:

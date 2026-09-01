@@ -1,9 +1,24 @@
 import os
+import threading
 import discord
 from discord.ext import commands
 from discord import app_commands
 import base64
+from fastapi import FastAPI
 
+# 1. Mini serveur web pour satisfaire Render
+app = FastAPI()
+
+@app.get("/")
+def home():
+    return {"status": "Bot Discord actif !"}
+
+def run_web():
+    import uvicorn
+    port = int(os.environ.get("PORT", 10000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
+
+# 2. Configuration du Bot Discord
 class ObfBot(commands.Bot):
     def __init__(self):
         super().__init__(command_prefix="!", intents=discord.Intents.default())
@@ -26,7 +41,6 @@ async def on_ready():
 async def obf(interaction: discord.Interaction, code: str = None, file: discord.Attachment = None):
     script_content = None
 
-    # Vérifie si l'utilisateur a attaché un fichier
     if file:
         if file.filename.endswith((".lua", ".txt")):
             file_bytes = await file.read()
@@ -40,7 +54,6 @@ async def obf(interaction: discord.Interaction, code: str = None, file: discord.
         await interaction.response.send_message("Tu dois soit écrire du code dans le paramètre `code`, soit joindre un fichier `file` !", ephemeral=True)
         return
 
-    # Simulation / Exemple de protection du script
     encoded_bytes = base64.b64encode(script_content.encode("utf-8"))
     encoded_str = encoded_bytes.decode("utf-8")
     
@@ -50,16 +63,19 @@ async def obf(interaction: discord.Interaction, code: str = None, file: discord.
     with open(file_name, "w", encoding="utf-8") as f:
         f.write(protected_script)
 
-    # Envoi du fichier protégé en message privé / éphémère (visible par lui seul)
     await interaction.response.send_message("Ton script a été protégé avec succès :", file=discord.File(file_name), ephemeral=True)
 
     if os.path.exists(file_name):
         os.remove(file_name)
 
 if __name__ == "__main__":
+    # Lancement du serveur web en arrière-plan pour Render
+    threading.Thread(target=run_web, daemon=True).start()
+    
+    # Lancement du bot Discord
     TOKEN = os.environ.get("TOKEN")
     if TOKEN:
         bot.run(TOKEN)
     else:
         print("Erreur : Aucun Token trouvé dans les variables d'environnement !")
-        
+    

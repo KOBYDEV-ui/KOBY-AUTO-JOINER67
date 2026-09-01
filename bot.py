@@ -27,10 +27,12 @@ class ObfBot(commands.Bot):
 
     async def setup_hook(self):
         try:
+            # Synchronisation sécurisée pour éviter de spammer l'API
+            print("Synchronisation des commandes...")
             await self.tree.sync()
             print("Commandes slash synchronisées avec succès !")
         except Exception as e:
-            print(f"Erreur sync tree: {e}")
+            print(f"Avertissement sync tree (rate limit possible) : {e}")
 
 bot = ObfBot()
 
@@ -75,10 +77,6 @@ async def obf(interaction: discord.Interaction, code: str = None, file: discord.
             os.remove(file_name)
     except Exception as e:
         print(f"Erreur dans la commande obf: {e}")
-        try:
-            await interaction.response.send_message("Une erreur est survenue.", ephemeral=True)
-        except:
-            pass
 
 if __name__ == "__main__":
     try:
@@ -91,6 +89,6 @@ if __name__ == "__main__":
         else:
             print("Erreur : Aucun Token trouvé dans les variables d'environnement !")
     except Exception as e:
-        print("Erreur fatale au lancement :")
+        print("Erreur critique au lancement du bot :")
         traceback.print_exc()
         

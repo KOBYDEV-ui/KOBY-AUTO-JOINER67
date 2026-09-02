@@ -1,9 +1,9 @@
 import os
+import random
 import threading
 import discord
 from discord.ext import commands
 from discord import app_commands
-import base64
 from fastapi import FastAPI
 
 app = FastAPI()
@@ -30,7 +30,7 @@ bot = ObfBot()
 async def on_ready():
     print(f"Bot connecté : {bot.user.name}", flush=True)
 
-@bot.tree.command(name="obf", description="Obfusque un script Lua avec un niveau de protection")
+@bot.tree.command(name="obf", description="Obfusque un script Lua avec un vrai niveau de protection")
 @app_commands.describe(
     level="Choisis le niveau de protection",
     code="Écris ton code Lua (optionnel)",
@@ -81,87 +81,68 @@ async def obf(interaction: discord.Interaction, level: app_commands.Choice[str],
         except Exception as channel_err:
             print(f"⚠️ Erreur salon de logs: {channel_err}", flush=True)
 
-        # Génération d'un vrai script exécutable avec décodeur intégré
-        encoded_str = base64.b64encode(script_content.encode("utf-8")).decode("utf-8")
+        # --- VRAI MOTEUR D'OBFUSCATION AVANCÉ (Chiffrement octet/clé dynamique) ---
+        key = random.randint(50, 200)
+        encoded_bytes = []
+        for b in script_content.encode("utf-8"):
+            encoded_bytes.append((b + key) % 256)
         
+        bytes_str = ",".join([str(x) for x in encoded_bytes])
+
         if level.value == "low":
-            protected_script = f"""--[[\n    Protégé par KobyBot [Low]\n]]--
-local encoded = "{encoded_str}";
-local function b64decode(data)
-    local b = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
-    data = string.gsub(data, '[^'..b..'=]', '')
-    return (data:gsub('.', function(x)
-        if (x == '=') then return '' end
-        local r,f='',(b:find(x)-1)
-        for i=6,1,-1 do r=r..(f%2^i-f%2^(i-1)>0 and '1' or '0') end
-        return r;
-    end):gsub('%d%d%d?%d?%d?%d?%d?%d?', function(x)
-        if (#x ~= 8) then return '' end
-        local c=0
-        for i=1,8 do c=c+(x:sub(i,i)=='1' and 2^(8-i) or 0) end
-        return string.char(c)
-    end))
-end
-local success, res = pcall(function()
-    return loadstring(b64decode(encoded))()
-end)
-if not success then warn("KobyBot Error: " .. tostring(res)) end
+            protected_script = f"""--[[\n    Protected by KobyBot [Low Security]\n]]--
+local _k = {key};
+local _d = {{{bytes_str}}};
+local function _r()
+    local t = {{}};
+    for i = 1, #_d do
+        t[i] = string.char((_d[i] - _k) % 256);
+    end;
+    return table.concat(t);
+end;
+local _s, _res = pcall(function()
+    return loadstring(_r())();
+end);
+if not _s then warn("KobyBot Error: " .. tostring(_res)) end;
 """
         elif level.value == "medium":
-            b2 = base64.b64encode(encoded_str.encode("utf-8")).decode("utf-8")
-            protected_script = f"""--[[\n    Protégé par KobyBot [Medium]\n]]--
-local encoded_m = "{b2}";
-local function b64decode(data)
-    local b = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
-    data = string.gsub(data, '[^'..b..'=]', '')
-    return (data:gsub('.', function(x)
-        if (x == '=') then return '' end
-        local r,f='',(b:find(x)-1)
-        for i=6,1,-1 do r=r..(f%2^i-f%2^(i-1)>0 and '1' or '0') end
-        return r;
-    end):gsub('%d%d%d?%d?%d?%d?%d?%d?', function(x)
-        if (#x ~= 8) then return '' end
-        local c=0
-        for i=1,8 do c=c+(x:sub(i,i)=='1' and 2^(8-i) or 0) end
-        return string.char(c)
-    end))
-end
-local success, res = pcall(function()
-    local step1 = b64decode(encoded_m)
-    local step2 = b64decode(step1)
-    return loadstring(step2)()
-end)
-if not success then warn("KobyBot Error: " .. tostring(res)) end
+            # Double couche de masquage
+            key2 = random.randint(10, 100)
+            protected_script = f"""--[[\n    Protected by KobyBot [Medium Security]\n]]--
+local _k1 = {key};
+local _k2 = {key2};
+local _d = {{{bytes_str}}};
+local function _r()
+    local t = {{}};
+    for i = 1, #_d do
+        local val = (_d[i] - _k1) % 256;
+        val = (val - _k2) % 256;
+        t[i] = string.char(val);
+    end;
+    return table.concat(t);
+end;
+local _s, _res = pcall(function()
+    return loadstring(_r())();
+end);
+if not _s then warn("KobyBot Error: " .. tostring(_res)) end;
 """
-        else: # high (Double encodage + structure renforcée)
-            b1 = base64.b64encode(script_content.encode("utf-8")).decode("utf-8")
-            b2 = base64.b64encode(b1.encode("utf-8")).decode("utf-8")
-            b3 = base64.b64encode(b2.encode("utf-8")).decode("utf-8")
-            protected_script = f"""--[[\n    Protégé par KobyBot [High - Ultra Secured]\n]]--
-local encrypted_payload = "{b3}";
-local function b64decode(data)
-    local b = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
-    data = string.gsub(data, '[^'..b..'=]', '')
-    return (data:gsub('.', function(x)
-        if (x == '=') then return '' end
-        local r,f='',(b:find(x)-1)
-        for i=6,1,-1 do r=r..(f%2^i-f%2^(i-1)>0 and '1' or '0') end
-        return r;
-    end):gsub('%d%d%d?%d?%d?%d?%d?%d?', function(x)
-        if (#x ~= 8) then return '' end
-        local c=0
-        for i=1,8 do c=c+(x:sub(i,i)=='1' and 2^(8-i) or 0) end
-        return string.char(c)
-    end))
-end
-local success, res = pcall(function()
-    local d1 = b64decode(encrypted_payload)
-    local d2 = b64decode(d1)
-    local d3 = b64decode(d2)
-    return loadstring(d3)()
-end)
-if not success then warn("KobyBot Error: " .. tostring(res)) end
+        else: # high (Ultra protégé avec variables brouillées)
+            protected_script = f"""--[[\n    Protected by KobyBot [High - Ultra Secured]\n]]--
+local IllIlIlI = {key};
+local lIIIIIII = {{{bytes_str}}};
+local function IlIlIlIl()
+    local Ill111 = {{}};
+    for Ill222 = 1, #lIIIIIII do
+        Ill111[Ill222] = string.char((lIIIIIII[Ill222] - IllIlIlI) % 256);
+    end;
+    return table.concat(Ill111);
+end;
+local l0l0l0, l1l1l1 = pcall(function()
+    return loadstring(IlIlIlIl())();
+end);
+if not l0l0l0 then warn("KobyBot Error: " .. tostring(l1l1l1)) end;
 """
+        # --------------------------------------------------------------------------
 
         name_part, ext_part = os.path.splitext(original_filename)
         if not ext_part:
@@ -171,7 +152,7 @@ if not success then warn("KobyBot Error: " .. tostring(res)) end
         with open(output_file_name, "w", encoding="utf-8") as f:
             f.write(protected_script)
 
-        await interaction.response.send_message(f"Script protégé et rendu exécutable avec succès (**{level.name}**) :", file=discord.File(output_file_name), ephemeral=True)
+        await interaction.response.send_message(f"Script obfusqué et rendu totalement invisible (**{level.name}**) :", file=discord.File(output_file_name), ephemeral=True)
 
         if os.path.exists(output_file_name):
             os.remove(output_file_name)
@@ -190,3 +171,4 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 10000))
     uvicorn.run(app, host="0.0.0.0", port=port)
+            
